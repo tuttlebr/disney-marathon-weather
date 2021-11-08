@@ -1,0 +1,20 @@
+services:
+  notebook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: jupyter lab --notebook-dir=/app --ip=0.0.0.0 --no-browser --allow-root --port=8888 --ServerApp.token='' --ServerApp.password='' --ServerApp.allow_origin='*' --ServerApp.base_url=/
+    image: disney-marathon-weather:2022
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+    ports:
+      - "8888:8888"
+
+  terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python /app/src/main/python/forecast.py
+    image: disney-marathon-weather:2022
