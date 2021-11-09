@@ -3,9 +3,10 @@ import plotly.offline as py
 py.init_notebook_mode()
 
 from logging import basicConfig, info
+
 import pandas as pd
 from prophet import Prophet
-from prophet.plot import plot_plotly, plot_components_plotly
+from prophet.plot import plot_components_plotly, plot_plotly
 
 pd.options.mode.chained_assignment = None
 
@@ -68,9 +69,7 @@ def forecast():
         m.fit(df_tmp)
         future = m.make_future_dataframe(periods=70)
         forecast = m.predict(future)
-        forecast = forecast.join(df_tmp, rsuffix="DROP").filter(
-            regex="^(?!.*DROP)"
-        )
+        forecast = forecast.join(df_tmp, rsuffix="DROP").filter(regex="^(?!.*DROP)")
         # plot = plot_plotly(m, forecast, figsize=(1600, 900))
         forecast["ds"] = pd.to_datetime(forecast.ds)
         m.plot(forecast, figsize=(16, 9)).savefig(f"{p}.png")
