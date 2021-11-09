@@ -10,7 +10,7 @@ from prophet.plot import plot_plotly, plot_components_plotly
 pd.options.mode.chained_assignment = None
 
 basicConfig(
-    format="%(asctime)s %(message)s",
+    format="%(message)s",
     level="INFO",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -53,23 +53,28 @@ def forecast():
         "1994-01-16",
     ]
 
-    df = pd.read_csv(NOAA_CSV, usecols=USECOLS).interpolate()
+    df = pd.read_csv(
+        NOAA_CSV, usecols=USECOLS, infer_datetime_format=True
+    ).interpolate()
     df.rename(columns={DATE_COL: "ds"}, inplace=True)
     df.head()
 
     manifest = {}
     for p in PREDICTIONS:
         info(f"Running forecast model training for {p}")
-        m = Prophet(
-            mcmc_samples=300, uncertainty_samples=1000, interval_width=0.80
-        )
+        m = Prophet(mcmc_samples=0)
         df_tmp = df[["ds", p]]
         df_tmp.rename(columns={p: "y"}, inplace=True)
         m.fit(df_tmp)
         future = m.make_future_dataframe(periods=70)
         forecast = m.predict(future)
-        plot = plot_plotly(m, forecast, figsize=(1600, 900))
-        manifest[p] = {"forecast": forecast, "model": m, "plot": plot}
+        forecast = forecast.join(df_tmp, rsuffix="DROP").filter(
+            regex="^(?!.*DROP)"
+        )
+        # plot = plot_plotly(m, forecast, figsize=(1600, 900))
+        forecast["ds"] = pd.to_datetime(forecast.ds)
+        m.plot(forecast, figsize=(16, 9)).savefig(f"{p}.png")
+        manifest[p] = {"forecast": forecast, "model": m}
 
     manifest["marathon_dates"] = MARATHON_DATES
     return manifest
@@ -77,5 +82,15 @@ def forecast():
 
 if __name__ == "__main__":
     manifest = forecast()
-    manifest["TMIN"]["plot"]
-    manifest["TMAX"]["plot"]
+    info("            ***** Anticipated Max Temps *****            ")
+    info(
+        manifest["TMAX"]["forecast"][
+            manifest["TMAX"]["forecast"].ds.isin(manifest["marathon_dates"])
+        ][["ds", "y", "yhat_lower", "yhat", "yhat_upper"]]
+    )
+    info("            ***** Anticipated Min Temps *****            ")
+    info(
+        manifest["TMIN"]["forecast"][
+            manifest["TMIN"]["forecast"].ds.isin(manifest["marathon_dates"])
+        ][["ds", "y", "yhat_lower", "yhat", "yhat_upper"]]
+    )

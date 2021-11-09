@@ -1,5 +1,7 @@
 FROM --platform=amd64 python:3.8
 
+ENV PYTHONPATH "${PYTHONPATH}:/app/src/main/python"
+
 WORKDIR /app
 
 COPY . .
